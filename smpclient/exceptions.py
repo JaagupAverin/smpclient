@@ -1,13 +1,16 @@
 """`smpclient` module exceptions."""
 
 
-class SMPClientException(Exception): ...
+class SMPClientException(Exception):
+    ...
 
 
-class SMPBadSequence(SMPClientException): ...
+class SMPBadSequence(SMPClientException):
+    ...
 
 
-class SMPUploadError(SMPClientException): ...
+class SMPUploadError(SMPClientException):
+    ...
 
 
 class SMPValidationException(SMPClientException):

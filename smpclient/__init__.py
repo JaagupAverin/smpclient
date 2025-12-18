@@ -53,7 +53,7 @@ logger = logging.getLogger(__name__)
 
 
 def _hexdump_ascii(data: bytes) -> str:
-    """Python 3.12+ has builtint hexdump, prior to that we need to reinvent the wheel."""
+    """Python 3.12+ has builtin hexdump, prior to that we need to reinvent the wheel."""
     lines = []
     for i in range(0, len(data), 16):
         chunk = data[i : i + 16]
@@ -73,23 +73,24 @@ def _prettify_validation_error(exc: ValidationError) -> str:
     return "\n".join(lines)
 
 
-def _create_smp_validation_exception(
+def _smp_validation_error_message(
     header: smpheader.Header,
     frame: bytes,
     errs: dict[type[smpmsg.Response], ValidationError],
-) -> SMPValidationException:
-    msg: str = (
-        f"\nFrame could not be parsed as any of:\n\t{[str(t.__name__) for t in errs.keys()]}\n"
-    )
+) -> tuple[str, str]:
+    msg = f"\nFrame could not be parsed as any of:\n\t{[str(t.__name__) for t in errs.keys()]}\n"
 
     details = ""
     details += f"Header:\n\t{header}\n"
     details += f"Frame:\n{_hexdump_ascii(frame)}\n"
     details += "Errors:\n"
     for cls, exc in errs.items():
-        details += f"\tCould not be parsed as {cls.__name__} because {len(exc.errors())} errors:\n{_prettify_validation_error(exc)}\n"
+        details += (
+            f"\tCould not be parsed as {cls.__name__} because {len(exc.errors())} errors:\n"
+            f"{_prettify_validation_error(exc)}\n"
+        )
 
-    return SMPValidationException(msg=msg, details=details)
+    return msg, details
 
 
 class SMPClient:
@@ -230,9 +231,9 @@ class SMPClient:
             return request._ErrorV2.loads(frame)
         except ValidationError as e:
             errs[request._ErrorV2] = e
-            exc = _create_smp_validation_exception(header, frame, errs)
-            logger.error(exc.msg + exc.details)
-            raise exc from None
+            msg, details = _smp_validation_error_message(header, frame, errs)
+            logger.error(msg + details)
+            raise SMPValidationException(msg, details)
 
     async def upload(
         self,
